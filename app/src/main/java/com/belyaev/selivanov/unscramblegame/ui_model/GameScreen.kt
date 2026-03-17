@@ -38,7 +38,7 @@ import androidx.compose.ui.text.input.ImeAction
 fun GameScreen(
     modifier: Modifier = Modifier,
     gameViewModel: GameViewModel = viewModel()
-){
+) {
     val gameUiState by gameViewModel.uiState.collectAsState()
     Column(
         modifier = Modifier
@@ -59,12 +59,17 @@ fun GameScreen(
         )
         GameLayout(
             currentScrambleWord = gameUiState.currentScrambledWord,
-            onUserGuessChanged = { }, // TODO: добавим позже
-            onKeyboardDone = { } // TODO: добавим позже
+            userGuess = gameViewModel.userGuess,
+            onUserGuessChanged = { gameViewModel.updateUserGuess(it) },
+            onKeyboardDone = { gameViewModel.checkUserGuess() },
+            isGuessWrong = gameUiState.isGuessedWordWrong,
+            onSumbitClicked = { gameViewModel.checkUserGuess() },
+            onSkipClicked = { gameViewModel.skipWord() }
         )
 
     }
 }
+
 @Composable
 fun GameStatus(
     wordCount: Int,
@@ -76,13 +81,13 @@ fun GameStatus(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         )
-    ){
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween
-        ){
+        ) {
             Text(
                 text = "Слово $wordCount из ${com.belyaev.selivanov.unscramblegame.data.MAX_NO_OF_WORDS}",
                 style = MaterialTheme.typography.titleMedium
@@ -98,8 +103,12 @@ fun GameStatus(
 @Composable
 fun GameLayout(
     currentScrambleWord: String,
+    userGuess: String,
     onUserGuessChanged: (String) -> Unit,
     onKeyboardDone: () -> Unit,
+    isGuessWrong: Boolean,
+    onSumbitClicked: () -> Unit,
+    onSkipClicked: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var userGuess by remember { mutableStateOf("") }
@@ -116,7 +125,7 @@ fun GameLayout(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant
             )
         ) {
-            // Внутри Card — колонка
+
             Column(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -131,50 +140,58 @@ fun GameLayout(
                     text = "Разгадайте слово",
                     style = MaterialTheme.typography.titleMedium
                 )
-                OutlinedTextField(
-                    value = userGuess,
-                    onValueChange = {
-                        userGuess = it
-                        onUserGuessChanged(it)
-                    },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Введите слово") },
-                    keyboardOptions = KeyboardOptions.Default.copy(
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onDone = { onKeyboardDone() }
-                    )
+            }
+        }
+        OutlinedTextField(
+            value = userGuess,
+            onValueChange = {
+                userGuess = it
+                onUserGuessChanged(it)
+            },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Введите слово") },
+            isError = isGuessWrong,
+            keyboardOptions = KeyboardOptions.Default.copy(
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = { onKeyboardDone() }
+            )
+        )
+        if (isGuessWrong) {
+            Text(
+                text = "Неправильно! Попробуйте еще раз.",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+//        Row(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .padding(top = 8.dp),
+//            horizontalArrangement = Arrangement.SpaceEvenly
+//        )
+//        {
+            Button(
+                onClick = onSumbitClicked,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Проверить",
+                    fontSize = 16.sp
                 )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Button(
-                        onClick = { /* TODO */ },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = "Проверить",
-                            fontSize = 16.sp
-                        )
-                    }
-                    OutlinedButton(
-                        onClick = { /* TODO */ },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = "Пропустить",
-                            fontSize = 16.sp
-                        )
-                    }
-                }
+            }
+            OutlinedButton(
+                onClick = onSkipClicked,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Пропустить",
+                    fontSize = 16.sp
+                )
             }
         }
     }
-}
 
-
+//}
